@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-""" 9-insert_school """
+"""
+module for NoSQl (mongodb)
+"""
+
 
 
 def insert_school(mongo_collection, **kwargs):
