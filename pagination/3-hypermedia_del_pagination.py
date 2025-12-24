@@ -4,7 +4,8 @@ Deletion-resilient hypermedia pagination
 """
 
 import csv
-from typing import List, Dict
+import math
+from typing import List
 
 
 class Server:
@@ -17,53 +18,48 @@ class Server:
         self.__indexed_dataset = None
 
     def dataset(self) -> List[List]:
-        """Cached dataset."""
+        """Cached dataset
+        """
         if self.__dataset is None:
             with open(self.DATA_FILE) as f:
                 reader = csv.reader(f)
                 dataset = [row for row in reader]
             self.__dataset = dataset[1:]
+
         return self.__dataset
 
     def indexed_dataset(self) -> Dict[int, List]:
-        """Dataset indexed by sorting position, starting at 0."""
+        """Dataset indexed by sorting position, starting at 0
+        """
         if self.__indexed_dataset is None:
             dataset = self.dataset()
+            truncated_dataset = dataset[:1000]
             self.__indexed_dataset = {
-                i: dataset[i]
-                for i in range(len(dataset))
+                i: dataset[i] for i in range(len(dataset))
             }
         return self.__indexed_dataset
 
-    def get_hyper_index(self, index: int = 0, page_size: int = 10) -> Dict:
-        """Return the dataset with deletion-resilient hypermedia pagination.
+    def get_hyper_index(self, index: int = 0, page_size: int = 10) -> dict:
+    """Return dataset with next_index that works even after deletions"""
+    dataset = self.indexed_dataset()
+    assert isinstance(index, int) and 0 <= index < len(dataset), "index out of range"
+    assert isinstance(page_size, int) and page_size > 0, "page_size must be positive"
 
-        Args:
-            index (int): start index of the page.
-            page_size (int): number of items to return.
+    data = []
+    current_index = index
+    collected = 0
+    keys = sorted(dataset.keys())
+    while collected < page_size and current_index <= keys[-1]:
+        if current_index in dataset:
+            data.append(dataset[current_index])
+            collected += 1
+        current_index += 1
 
-        Returns:
-            Dict: dictionary containing index, data, page_size, and next_index.
-        """
-        assert (
-            isinstance(index, int)
-            and 0 <= index < len(self.indexed_dataset())
-        )
+    next_index = current_index if current_index <= keys[-1] else None
 
-        dataset = self.indexed_dataset()
-        data = []
-        next_index = index
-        count = 0
-
-        while count < page_size and next_index < len(dataset):
-            if next_index in dataset:
-                data.append(dataset[next_index])
-                count += 1
-            next_index += 1
-
-        return {
-            'index': index,
-            'data': data,
-            'page_size': len(data),
-            'next_index': next_index
-        }
+    return {
+        "index": index,
+        "next_index": next_index,
+        "page_size": len(data),
+        "data": data
+    }
