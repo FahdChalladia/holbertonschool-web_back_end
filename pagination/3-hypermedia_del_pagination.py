@@ -34,34 +34,25 @@ class Server:
             }
         return self.__indexed_dataset
 
-    def get_hyper_index(self, index: int = 0, page_size: int = 10) -> Dict:
-        """
-        Return a deletion-resilient page of the dataset.
-        """
-        assert (
-            isinstance(index, int)
-            and 0 <= index < len(self.indexed_dataset())
-        ), "index out of range"
-        assert (
-            isinstance(page_size, int)
-            and page_size > 0
-        ), "page_size must be positive"
+    def get_hyper_index(self, index: int = None, page_size: int = 10) -> Dict:
+        """Deletion-resilient hypermedia pagination"""
+        dataset = self.indexed_dataset()
+        assert index is not None and 0 <= index < len(self.__dataset)
 
         data = []
         current_index = index
-        next_index = index
-        while (
-            len(data) < page_size
-            and next_index < len(self.indexed_dataset())
-        ):
+        collected = 0
 
-            if next_index in self.__indexed_dataset:
-                data.append(self.__indexed_dataset[next_index])
-            next_index += 1
+        while collected < page_size and current_index < len(self.__dataset):
+            if current_index in dataset:
+                data.append(dataset[current_index])
+                collected += 1
+            current_index += 1
 
+        next_index = current_index
         return {
-            "index": index,
-            "next_index": next_index,
-            "page_size": len(data),
-            "data": data
+            'index': index,
+            'data': data,
+            'page_size': len(data),
+            'next_index': next_index
         }
