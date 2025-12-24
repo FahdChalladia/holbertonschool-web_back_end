@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """
-Deletion-resilient hypermedia pagination.
-Provides a Server class that supports hypermedia pagination
-resilient to deletions in the dataset.
+Deletion-resilient hypermedia pagination
 """
 
 import csv
@@ -10,68 +8,60 @@ from typing import List, Dict
 
 
 class Server:
-    """Server class to paginate a dataset of popular baby names."""
-
+    """Server class to paginate a database of popular baby names.
+    """
     DATA_FILE = "Popular_Baby_Names.csv"
 
     def __init__(self):
-        """Initialize Server with cached dataset and indexed dataset."""
-        self.__dataset: List[List] = None
-        self.__indexed_dataset: Dict[int, List] = None
+        self.__dataset = None
+        self.__indexed_dataset = None
 
     def dataset(self) -> List[List]:
-        """Return cached dataset, loading it if necessary."""
+        """Cached dataset."""
         if self.__dataset is None:
             with open(self.DATA_FILE) as f:
                 reader = csv.reader(f)
-                data = [row for row in reader]
-            self.__dataset = data[1:]  # skip header
+                dataset = [row for row in reader]
+            self.__dataset = dataset[1:]
         return self.__dataset
 
     def indexed_dataset(self) -> Dict[int, List]:
-        """Return dataset indexed by position, starting at 0."""
+        """Dataset indexed by sorting position, starting at 0."""
         if self.__indexed_dataset is None:
             dataset = self.dataset()
-            self.__indexed_dataset = {i: dataset[i] for i in range(len(dataset))}
+            self.__indexed_dataset = {
+                i: dataset[i]
+                for i in range(len(dataset))
+            }
         return self.__indexed_dataset
 
     def get_hyper_index(self, index: int = 0, page_size: int = 10) -> Dict:
-        """
-        Return a deletion-resilient hypermedia page starting at `index`.
+        """Return the dataset with deletion-resilient hypermedia pagination.
 
         Args:
-            index (int): starting index of page (default 0)
-            page_size (int): number of items to return (default 10)
+            index (int): start index of the page.
+            page_size (int): number of items to return.
 
         Returns:
-            Dict with keys:
-                - index: current start index
-                - next_index: next index to query for following page
-                - page_size: actual number of items returned
-                - data: list of items in current page
+            Dict: dictionary containing index, next_index, page_size, and data.
         """
-        indexed_data = self.indexed_dataset()
-        dataset_length = len(indexed_data)
+        assert isinstance(index, int) \
+            and 0 <= index < len(self.indexed_dataset())
 
-        assert isinstance(index, int) and 0 <= index < dataset_length, \
-            "Index out of range"
-        assert isinstance(page_size, int) and page_size > 0, \
-            "Page size must be positive"
-
-        data: List[List] = []
+        dataset = self.indexed_dataset()
+        data = []
         next_index = index
-        collected = 0
+        count = 0
 
-        # Collect `page_size` items while skipping deleted entries
-        while collected < page_size and next_index < dataset_length:
-            if next_index in indexed_data:
-                data.append(indexed_data[next_index])
-                collected += 1
+        while count < page_size and next_index < len(dataset):
+            if next_index in dataset:
+                data.append(dataset[next_index])
+                count += 1
             next_index += 1
 
         return {
-            "index": index,
-            "next_index": next_index,
-            "page_size": len(data),
-            "data": data
+            'index': index,
+            'next_index': next_index,
+            'page_size': len(data),
+            'data': data
         }
