@@ -43,10 +43,12 @@ class Server:
             page_size (int): number of items to return.
 
         Returns:
-            Dict: dictionary containing index, next_index, page_size, and data.
+            Dict: dictionary containing index, data, page_size, and next_index.
         """
-        assert isinstance(index, int) \
+        assert (
+            isinstance(index, int)
             and 0 <= index < len(self.indexed_dataset())
+        )
 
         dataset = self.indexed_dataset()
         data = []
@@ -61,7 +63,7 @@ class Server:
 
         return {
             'index': index,
-            'next_index': next_index,
+            'data': data,
             'page_size': len(data),
-            'data': data
+            'next_index': next_index
         }
